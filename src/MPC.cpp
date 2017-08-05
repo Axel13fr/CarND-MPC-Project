@@ -24,7 +24,7 @@ const double Lf = 2.67;
 
 // NOTE: feel free to play around with this
 // or do something completely different
-constexpr double ref_v = 20;
+constexpr double ref_v = 50;
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should to establish
@@ -62,8 +62,10 @@ public:
 
         // Make sure error is minimized and speed remains close to ref speed
         for (int t = 0; t < N; t++) {
-            fg[0] += CppAD::pow(vars[cte_start + t], 2);
-            fg[0] += CppAD::pow(vars[epsi_start + t], 2);
+            // Tuned so that the vehicle follows the expected path close enough:
+            // prioritize low error in position over speed
+            fg[0] += 300*CppAD::pow(vars[cte_start + t], 2);
+            fg[0] += 100*CppAD::pow(vars[epsi_start + t], 2);
             fg[0] += CppAD::pow(vars[v_start + t] - ref_v, 2);
         }
 
@@ -75,6 +77,7 @@ public:
 
         // Minimize the value gap between sequential actuations.
         for (int t = 0; t < N - 2; t++) {
+            // Tuned so that the compute trajectories will be smooth enough
             fg[0] += 100*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
             fg[0] += 100*CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
         }
