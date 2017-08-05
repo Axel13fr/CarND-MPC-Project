@@ -17,6 +17,7 @@ constexpr double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
 double rad2deg(double x) { return x * 180 / pi(); }
 
+// A set of waypoints forming a track
 struct track{
     std::vector<double> x;
     std::vector<double> y;
@@ -132,6 +133,18 @@ int main() {
                     double py = j[1]["y"];
                     double psi = j[1]["psi"];
                     double v = j[1]["speed"];
+                    // Inverted steering from simulator !
+                    double curr_steer = j[1]["steering_angle"];
+                    curr_steer = - curr_steer;
+                    double curr_acc = j[1]["throttle"];
+
+                    // Compensate actuators latency : inputs for the solver
+                    // are predicted at t + actuator response time
+                    constexpr double LATENCY_SECS = 0.1;
+                    px += v*cos(psi)*LATENCY_SECS;
+                    py += v*sin(psi)*LATENCY_SECS;
+                    psi += v*(curr_steer/Lf)*LATENCY_SECS;
+                    v += curr_acc*LATENCY_SECS;
 
                     /*
                       * Calculate steering angle and throttle using MPC.
@@ -139,6 +152,7 @@ int main() {
                       * Both are in between [-1, 1].
                       *
                       */
+
                     // First convert ref waypoints to local veh coordinates
                     track wp{ptsx,ptsy};
                     auto ref_track = ConvertPtsToLocalTrack(wp,px,py,psi);
@@ -163,7 +177,6 @@ int main() {
                     json msgJson;
                     // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
                     // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
-                    const double Lf = 2.67;
                     msgJson["steering_angle"] = - steer_value / (deg2rad(25)*Lf);
                     msgJson["throttle"] = throttle_value;
 
@@ -194,7 +207,7 @@ int main() {
                     //
                     // NOTE: REMEMBER TO SET THIS TO 100 MILLISECONDS BEFORE
                     // SUBMITTING.
-                    this_thread::sleep_for(chrono::milliseconds(0));
+                    this_thread::sleep_for(chrono::milliseconds(100));
                     ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
                 }
             } else {

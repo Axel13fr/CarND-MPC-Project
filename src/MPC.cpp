@@ -6,37 +6,25 @@
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-constexpr size_t N = 10;
-constexpr double dt = 0.2;
-constexpr size_t STATE_SIZE = 6;
+static constexpr size_t N = 10;
+static constexpr double dt = 0.2;
+static constexpr size_t STATE_SIZE = 6;
 
-// This value assumes the model presented in the classroom is used.
-//
-// It was obtained by measuring the radius formed by running the vehicle in the
-// simulator around in a circle with a constant steering angle and velocity on a
-// flat terrain.
-//
-// Lf was tuned until the the radius formed by the simulating the model
-// presented in the classroom matched the previous radius.
-//
-// This is the length from front to CoG that has a similar radius.
-const double Lf = 2.67;
 
-// NOTE: feel free to play around with this
-// or do something completely different
-constexpr double ref_v = 50;
+// Speed setpoint
+static constexpr double ref_v = 50;
 
 // The solver takes all the state variables and actuator
 // variables in a singular vector. Thus, we should to establish
 // when one variable starts and another ends to make our lifes easier.
-size_t x_start = 0;
-size_t y_start = x_start + N;
-size_t psi_start = y_start + N;
-size_t v_start = psi_start + N;
-size_t cte_start = v_start + N;
-size_t epsi_start = cte_start + N;
-size_t delta_start = epsi_start + N;
-size_t a_start = delta_start + N - 1;
+static constexpr size_t x_start = 0;
+static constexpr size_t y_start = x_start + N;
+static constexpr size_t psi_start = y_start + N;
+static constexpr size_t v_start = psi_start + N;
+static constexpr size_t cte_start = v_start + N;
+static constexpr size_t epsi_start = cte_start + N;
+static constexpr size_t delta_start = epsi_start + N;
+static constexpr size_t a_start = delta_start + N - 1;
 
 class FG_eval {
 public:
@@ -64,8 +52,8 @@ public:
         for (int t = 0; t < N; t++) {
             // Tuned so that the vehicle follows the expected path close enough:
             // prioritize low error in position over speed
-            fg[0] += 300*CppAD::pow(vars[cte_start + t], 2);
-            fg[0] += 100*CppAD::pow(vars[epsi_start + t], 2);
+            fg[0] += 500*CppAD::pow(vars[cte_start + t], 2);
+            fg[0] += 300*CppAD::pow(vars[epsi_start + t], 2);
             fg[0] += CppAD::pow(vars[v_start + t] - ref_v, 2);
         }
 
@@ -78,7 +66,7 @@ public:
         // Minimize the value gap between sequential actuations.
         for (int t = 0; t < N - 2; t++) {
             // Tuned so that the compute trajectories will be smooth enough
-            fg[0] += 100*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+            fg[0] += 300*CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
             fg[0] += 100*CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
         }
 
