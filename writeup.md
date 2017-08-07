@@ -7,15 +7,17 @@ This repository contains the code needed to build a program which connects to th
 The Project
 ---
 The goals / steps of this project are the following:
-* Optimize PID parameters to have the vehicle stay on track and drive as fast as possible safely 
-* Summarize the results and document how parameters were tuned
+* Implement a predictive model to have the vehicle stay on track and drive as fast as possible safely 
+* Summarize the results and document how the model was constructured and the parameters were tuned
 
 
-## Tuning the PID Parameters
+## From PID to Model Predictive control 
 
-I approached this problem by going over 2 steps:
-1. Tuning the PID manually until I had something where the vehicle could drive a full lap
-2. Use an optimization algorithm (in my case twiddle) to come to a more finely optimized result 
+The previous PID controller project was implemented as directly reacting to the cross track error (CTE). It prevented from taking advantage of the 2 following informations :
+1. The future position, speed and orientation can be approximated using a dynamic model, hence the future CTE can be estimated as well
+2. The future expected position is known because the precise route to follow is planned before hand
+
+These 2 informations allows the problem to be forumulated as an optimization problem: find acceleration and steering wheel setpoints such that the position/orientation/speed error is minimized by looking at several positions in the future.
 
 ### The effect of P, I and D parameters
 
