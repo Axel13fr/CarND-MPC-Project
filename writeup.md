@@ -33,19 +33,53 @@ y<sub>t+1</sub> =y<sub>t</sub>+v<sub>t</sub>∗sin(ψ<sub>t</sub>)∗dt
 
 ψ<sub>t+1</sub> =ψ<sub>t</sub>+Lfv<sub>t</sub>∗δ∗dt
 
-v<sub>t+1</sub>=v<sub>t</sub>+a<sub>t</sub>∗dt
+v<sub>t+1</sub> =v<sub>t</sub>+a<sub>t</sub>∗dt
 
 #### Errors
 
 The cross track error is the distance between the center of the road and the vehicle's position:
 
-cte<sub>t+1</sub> =ctet +v<sub>t</sub>∗sin(eψ<sub>t</sub>)∗dt
+cte<sub>t+1</sub> =cte<sub>t</sub> +v<sub>t</sub>∗sin(eψ<sub>t</sub>)∗dt
 
 The orientation error is angle difference between the vehicle orientation and the tangential angle of the path to follow (ψdes<sub>t</sub>) + the error caused by the vehicle movement:
 
 eψ<sub>t+1</sub> =ψ<sub>t</sub> −ψdes<sub>t</sub> +(v<sub>t</sub>/L<sub>f</sub>∗δ<sub>t</sub>∗dt)
 
+#### State and actuators  
+
+The kinematic model and the errors form together the state vector: [x y ψ v cte eψ]
+
+The actuator commands are the acceleration a and the steering wheel angle delta.
+
+#### Optimization setup
+
+The goal of the optimization is to choose actuator commands such that cte and eψ are minimized. For this purpose, we need to give constraints to the optimizer so that the kinematic model is respected (ex: the car can't teleport to the middle of the road). 
+
+Only doing this will not be enough to come to safe driving solutions ! We need to make sure as well that :
+- the vehicle will not stop in the middel of the road by penalizing a speed too far from the target speed
+- the vehicle will not drive in a hectic way by penalizing the use of actuators
+- the vehicle will drive smoothly by penalizing large variations of throttle or steering
+
+Last but not least, the optimizer must be told what the maximum and minimum values for actuators : +/-25deg steering and [-1+1] acceleration/brake. 
+
+### MPC tuning
+
 ### Prediction window: timestep length and elapsed duration
+
+The timestep length N controls the number of predicted states in the future we will optimize on. Each of these prediction are done after dt time is elapsed.
+
+With these 2 parameters, we control : 
+- how far in the future we try to predict the vehicle state : T = N * dt   
+- how often we can apply an actuation for the optimizer : dt
+
+Because the model is only an approximation, using predictions to optimize the trajectory only makes sense for 1 to 2 secs. After that, the horizon won't match the vehicle predictions or the polynomial fit will not approximate the trajectory properly if there are many turns within the horizon.
+Increasing N means more computation time for the optimizer while at the same time, a large dt will make it difficult to find a good solution.
+
+I started out using T=3secs and tried dt of 0.05, 0.1 and 0.2. This prediction horizon was too large, causing the optimizer to generate chaotic solutions. I reduced it to 1 sec with a 0.1 dt and it worked pretty fine when without any latency and at low speeds (20-30mph).
+
+For the final solution, I incread T to 2secs to have better results on higher speed and I used a dt of 0.2secs to for the optimizer to find solutions which would give more time between 2 actuator commands: this helped to deal with the latency.
+
+### Optimizer tuning
 
 ### Polynomial Fitting and MPC Preprocessing
 
