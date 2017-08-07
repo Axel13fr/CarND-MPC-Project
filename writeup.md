@@ -19,32 +19,37 @@ The previous PID controller project was implemented as directly reacting to the 
 
 These 2 informations allows the problem to be forumulated as an optimization problem: find acceleration and steering wheel setpoints such that the position/orientation/speed error is minimized by looking at several positions in the future.
 
-### The effect of P, I and D parameters
+## Model predictive control implementation
 
-P causes the controler to response proportionnaly to the error. Its main influence can be seen as the responsiveness of the controller to an error. If the error increases very fast as in a sharp turn, P must be high enough to provide enough reactivity. Too much reactivity will cause an overshoot, causing undesired oscillations.
+### The model
 
-D is proportionnal to the error derivative and will be useful to attenuate an overreacting filter when getting closer to the setpoint, for example to recude overshoot effects of a high P.
+#### Kinematic model
 
-I is proportionnal to the integral of the error. It is used to account for any given bias in the control. For example when a 0 steering angle would not have the vehicle's wheels be aligned with the vehicle axis, the vehicle will always go a bit left or right instead of straight. By integrating this error over time, the I coefficient will correct that. 
+The kinematic model used to predict how the car moves is defined as follow (position, orientation ψ, speed v and acceleration a):
 
-### Manually tuning the parameters
+x<sub>t+1</sub> =x<sub>t</sub> +v<sub>t</sub> ∗cos(ψ<sub>t</sub>)∗dt
 
-I first started with tuning the P parameter. I increased it until I had a control reactive enough to cover for the first turn of the track but not oscilliating too much while still overshooting.
+y<sub>t+1</sub> =y<sub>t</sub>+v<sub>t</sub>∗sin(ψ<sub>t</sub>)∗dt
 
-To reduce overshoot, I gradually increased D until it proved more stable but not too much as it would cause in growing oscilliations up to  potentially divergence. At that point, the vehicle would drive well until the last turn which is quite sharp. To cope against that, I had to increase again the P parameter (now possible with a higher D) and in turn adjust D as well.
+ψ<sub>t+1</sub> =ψ<sub>t</sub>+Lfv<sub>t</sub>∗δ∗dt
 
-Finally, I introduced a pinch of I, the effect of which is hard to check visually. I set it to an initial value to prepare for a finer automatic optimization.
+v<sub>t+1</sub>=v<sub>t</sub>+a<sub>t</sub>∗dt
 
-### Finely optimizing with Twiddle
+#### Errors
 
-To get better performances, I implented twiddle to automatically search for better parameters based on the accumulated squared cross track error, over a fixed number of steps.
+The cross track error is the distance between the center of the road and the vehicle's position:
 
-First, I started with my manually tuned values for Kp, Ki, Kd: 0.8, 0.0004, 4.5.
-I ran twiddle over the first 500 steps of the track to optimize the PID when going mostly straight.
-I got as a result for Kp, Ki, Kd: 0.860978 0.000360201 4.14125.
+cte<sub>t+1</sub> =ctet +v<sub>t</sub>∗sin(eψ<sub>t</sub>)∗dt
 
-Second, when testing this result on the full track, I had large overshoots on the final sharp turn, causing the vehicle to dangerously go off track. To compensate for that, I had to take this part of the lap into account so I ran twiddle over the first 2700 steps to include that sharp turn.  
-I got as a result for Kp, Ki, Kd: 0.666776,0.000689087,4.25935. As one can see, the final optimization reduced P for less overshoot and increased I and D up to a certain point.
+The orientation error is angle difference between the vehicle orientation and the tangential angle of the path to follow (ψdes<sub>t</sub>) + the error caused by the vehicle movement:
+
+eψ<sub>t+1</sub> =ψ<sub>t</sub> −ψdes<sub>t</sub> +(v<sub>t</sub>/L<sub>f</sub>∗δ<sub>t</sub>∗dt)
+
+### Prediction window: timestep length and elapsed duration
+
+### Polynomial Fitting and MPC Preprocessing
+
+### Model Predictive Control with Latency
 
 
 ### Final result
